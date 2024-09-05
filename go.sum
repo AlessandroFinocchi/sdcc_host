@@ -1,5 +1,4 @@
-github.com/AlessandroFinocchi/sdcc_common v1.0.0 h1:lMweH27izEyzp1LLGhqHbSfsotnplo8p6UG94rBr1Uo=
-github.com/AlessandroFinocchi/sdcc_common v1.0.0/go.mod h1:d5qzsbQZ82j74pZoIJIrKxbvdrCVtjDrpYQnc3SV2QE=
+github.com/AlessandroFinocchi/sdcc_common v1.2.0 h1:jlhq2Lq+GHnJoBf98HZta6tI4zgGyvkT2AHAENAq1i8=
 github.com/AlessandroFinocchi/sdcc_common v1.2.0/go.mod h1:d5qzsbQZ82j74pZoIJIrKxbvdrCVtjDrpYQnc3SV2QE=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

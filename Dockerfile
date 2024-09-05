@@ -2,7 +2,7 @@ FROM golang:1.21-alpine
 
 RUN apk update
 
-WORKDIR /app/src/host
+WORKDIR /app
 
 COPY go.mod ./
 
