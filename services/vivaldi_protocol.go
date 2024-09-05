@@ -1,0 +1,188 @@
+package services
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"github.com/AlessandroFinocchi/sdcc_common/pb"
+	u "github.com/AlessandroFinocchi/sdcc_common/utils"
+	"google.golang.org/grpc"
+	"log"
+	"math"
+	"math/rand"
+	"net"
+	"os"
+	m "sdcc_host/model"
+	"sdcc_host/vivaldi"
+	"sync"
+	"time"
+)
+
+type VivaldiProtocol struct {
+	pb.UnimplementedVivaldiServer
+	sysCoord   m.Coordinate
+	error      float64
+	pView      *m.PartialView
+	cc         float64
+	ce         float64
+	filter     vivaldi.Filter
+	stabilizer *Stabilizer
+	mu         *sync.RWMutex
+}
+
+func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
+	cc, err1 := u.ReadConfigFloat64("config.ini", "vivaldi", "cc")
+	ce, err2 := u.ReadConfigFloat64("config.ini", "vivaldi", "ce")
+	cs := u.ReadConfigString("config.ini", "vivaldi", "coordinate_space")
+	coordinateDimensions, err3 := u.ReadConfigInt("config.ini", "vivaldi", "coordinate_dimensions")
+	if err1 != nil || err2 != nil || err3 != nil {
+		log.Fatalf("Failed to read config: %v", err1)
+	}
+
+	switch cs {
+	case "euclidean":
+		m.InstanceSpace = m.EuclideanSpace{}
+		m.SpaceType = 1
+	case "height_euclidean":
+		m.InstanceSpace = m.HeightVectorEuclideanSpace{}
+		m.SpaceType = 2
+		coordinateDimensions += 1 // for height
+	}
+
+	randomSlice := make([]float64, coordinateDimensions)
+	for i := range randomSlice {
+		randomSlice[i] = rand.Float64()
+	}
+
+	sysCoord := m.InstanceSpace.NewCoordinate(randomSlice)
+
+	return &VivaldiProtocol{
+		sysCoord:   sysCoord,
+		error:      1,
+		pView:      nil,
+		cc:         cc,
+		ce:         ce,
+		filter:     vivaldi.NewFilter(),
+		stabilizer: NewStabilizer(vivaldiGossip),
+		mu:         &sync.RWMutex{},
+	}
+
+}
+
+func (v *VivaldiProtocol) PullCoordinates(ctx context.Context, _ *pb.Empty) (*pb.VivaldiCoordinate, error) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if err := u.ContextError(ctx); err != nil {
+		return nil, err
+	}
+
+	return v.sysCoord.Proto(v.error), nil
+}
+
+func (v *VivaldiProtocol) StartServer() (string, uint32) {
+	flag.Parse()
+	serverAddress := fmt.Sprintf(":%d", *m.VivaldiPort)
+	lis, err := net.Listen("tcp", serverAddress)
+	if err != nil {
+		log.Fatalf("Failed to create listener: %v", err)
+	}
+
+	serverIp, err := u.GetIpFromListener(lis)
+	if err != nil {
+		log.Fatalf("Failed to get IP from listener: %v", err)
+	}
+	serverPort := uint32(*m.VivaldiPort)
+
+	registry := grpc.NewServer()
+	pb.RegisterVivaldiServer(registry, v)
+
+	go func() {
+		err = registry.Serve(lis)
+		if err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+
+	return serverIp, serverPort
+}
+
+func (v *VivaldiProtocol) StartClient() {
+	if v.pView == nil {
+		log.Fatalf("Partial view is not initialized")
+	}
+
+	samplingInterval, err := u.ReadConfigInt("config.ini", "vivaldi", "sampling_interval")
+	if err != nil {
+		log.Fatalf("Failed to read config: %v", err)
+	}
+
+	// Distribute the coordinates
+	ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
+	for range ticker.C {
+		desc, ok := v.pView.GetRandomDescriptor()
+		if ok {
+			startTime := time.Now().In(m.Location)
+			coords, errV := desc.PullCoordinates()
+			// Plus one to avoid rtt being zero, microseconds seems to be a right magnitude
+			rtt := time.Since(startTime)
+			if errV != nil {
+				fmt.Println("Failed to pull coordinates: ", errV)
+				v.pView.RemoveDescriptor(desc)
+			} else {
+				// Update the local coordinates
+				rttFiltered := v.UpdateCoordinates(coords, rtt, desc.GetReceiverNode().GetId())
+
+				// Update the stabilizer
+				v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
+
+				//fmt.Println("RTT: ", rtt)
+				fmt.Println("RTT filtered: ", rttFiltered)
+				fmt.Println("Error: ", v.error)
+				fmt.Printf("Updated system coordinates: %v \n\n", v.sysCoord.Proto(0).Value)
+				_ = os.Stdout.Sync()
+			}
+		}
+	}
+}
+
+func (v *VivaldiProtocol) SetPartialView(view *m.PartialView) {
+	if v.pView == nil {
+		v.pView = view
+	}
+}
+
+func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.VivaldiCoordinate, rtt time.Duration, receiverNodeId string) float64 {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	remoteCoordinate := m.InstanceSpace.Proto2Coordinate(receivedProtoCoordinates)
+	remoteError := receivedProtoCoordinates.GetError()
+	rttFiltered := float64(v.filter.FilterCoordinates(receiverNodeId, rtt).Milliseconds())
+	norm2Dist := m.InstanceSpace.GetNorm2Distance(v.sysCoord, remoteCoordinate)
+
+	// Sample weight balances local and remote confidences
+	w := v.error / (v.error + remoteError)
+
+	// Compute relative error of this sample
+	epsilon := math.Abs(norm2Dist-rttFiltered) / rttFiltered
+
+	// Update weighted moving average of the local confidence
+	alpha := v.ce * w
+	v.error = math.Min(math.Max(alpha*epsilon+((1-alpha)*v.error), 0), 1)
+
+	// Update the local coordinates
+	delta := v.cc * w
+	multiplier := delta * (rttFiltered - norm2Dist)
+	v.sysCoord = m.InstanceSpace.Add(v.sysCoord, m.InstanceSpace.Multiply(m.InstanceSpace.Subtract(v.sysCoord, remoteCoordinate).GetUnitVector(), multiplier))
+
+	//fmt.Println("Remote coordinate: ", receivedProtoCoordinates.Value)
+	//fmt.Println("Norm2 distance: ", norm2Dist)
+	//fmt.Println("W: ", w)
+	//fmt.Println("Epsilon: ", epsilon)
+	//fmt.Println("Alpha: ", alpha)
+	//fmt.Println("Delta: ", delta)
+	//_ = os.Stdout.Sync()
+
+	return rttFiltered
+}
