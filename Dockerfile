@@ -14,6 +14,6 @@ RUN apk add iproute2 iputils
 
 EXPOSE 50152 50153 50154
 
-RUN go build -o host ./host
+RUN go build -o /sdcc_host
 
 ENTRYPOINT ["sh", "host_setup.sh"]
