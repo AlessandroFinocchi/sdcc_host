@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	address = "0.0.0.0:50051" // For local testing
-	//address = "10.0.0.253:50051"
+	//address = "0.0.0.0:50051" // For local testing
+	address = "10.0.0.253:50051"
 )
 
 type RegistryConnectorClient struct {
