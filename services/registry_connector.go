@@ -27,7 +27,7 @@ func NewRegistryConnectorClient() (*RegistryConnectorClient, string) {
 	currUUID, err := uuid.NewUUID()
 	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingEnv))
 	if err != nil || errL != nil {
-		log.Fatalf("Could not generate UUID: %v", err)
+		log.Fatalf("Error in registry connector: %v", err)
 	}
 
 	fmt.Println("Current Host UUID: ", currUUID.String())
