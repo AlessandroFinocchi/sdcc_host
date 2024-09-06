@@ -9,23 +9,30 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"os"
 	m "sdcc_host/model"
+	uh "sdcc_host/utils"
+	"strconv"
 	"sync"
 	"time"
 )
 
 type MembershipProtocol struct {
 	pb.UnimplementedMembershipServer
-	pView *m.PartialView
-	mu    *sync.RWMutex
+	pView  *m.PartialView
+	mu     *sync.RWMutex
+	logger uh.MyLogger
 }
 
 func NewMembershipProtocol() *MembershipProtocol {
-	membershipProtocol := &MembershipProtocol{
-		mu: &sync.RWMutex{},
+	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingMembershipEnv))
+	if errL != nil {
+		log.Fatalf("Could not read configuration in membership: %v", errL)
 	}
-
-	return membershipProtocol
+	return &MembershipProtocol{
+		mu:     &sync.RWMutex{},
+		logger: uh.NewMyLogger(logging),
+	}
 }
 
 func (mp *MembershipProtocol) ShufflePeers(ctx context.Context, request *pb.MembershipRequestMessage) (*pb.MembershipReplyMessage, error) {
@@ -96,7 +103,7 @@ func (mp *MembershipProtocol) StartClient() {
 
 			reply, errM := desc.ShufflePeers(request)
 			if errM != nil {
-				fmt.Printf("failed to shuffle peers: %v\n", errM)
+				mp.logger.Log(fmt.Sprintf("failed to shuffle peers: %v\n", errM))
 				mp.pView.RemoveDescriptor(desc)
 			} else {
 				mp.pView.MergeViews(reply.GetNodes())

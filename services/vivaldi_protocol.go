@@ -13,7 +13,9 @@ import (
 	"net"
 	"os"
 	m "sdcc_host/model"
+	uh "sdcc_host/utils"
 	"sdcc_host/vivaldi"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -28,15 +30,17 @@ type VivaldiProtocol struct {
 	filter     vivaldi.Filter
 	stabilizer *Stabilizer
 	mu         *sync.RWMutex
+	logger     uh.MyLogger
 }
 
 func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
 	cc, err1 := u.ReadConfigFloat64("config.ini", "vivaldi", "cc")
 	ce, err2 := u.ReadConfigFloat64("config.ini", "vivaldi", "ce")
-	cs := u.ReadConfigString("config.ini", "vivaldi", "coordinate_space")
 	coordinateDimensions, err3 := u.ReadConfigInt("config.ini", "vivaldi", "coordinate_dimensions")
-	if err1 != nil || err2 != nil || err3 != nil {
-		log.Fatalf("Failed to read config: %v", err1)
+	cs := u.ReadConfigString("config.ini", "vivaldi", "coordinate_space")
+	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingVivaldiEnv))
+	if err1 != nil || err2 != nil || err3 != nil || errL != nil {
+		log.Fatalf("Failed to read config in vivaldi protcol: %v", err1)
 	}
 
 	switch cs {
@@ -65,6 +69,7 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
 		filter:     vivaldi.NewFilter(),
 		stabilizer: NewStabilizer(vivaldiGossip),
 		mu:         &sync.RWMutex{},
+		logger:     uh.NewMyLogger(logging),
 	}
 
 }
@@ -127,7 +132,7 @@ func (v *VivaldiProtocol) StartClient() {
 			// Plus one to avoid rtt being zero, microseconds seems to be a right magnitude
 			rtt := time.Since(startTime)
 			if errV != nil {
-				fmt.Println("Failed to pull coordinates: ", errV)
+				v.logger.Log(fmt.Sprintf("Failed to pull coordinates: %v", errV))
 				v.pView.RemoveDescriptor(desc)
 			} else {
 				// Update the local coordinates
@@ -136,10 +141,9 @@ func (v *VivaldiProtocol) StartClient() {
 				// Update the stabilizer
 				v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
 
-				//fmt.Println("RTT: ", rtt)
-				fmt.Println("RTT filtered: ", rttFiltered)
-				fmt.Println("Error: ", v.error)
-				fmt.Printf("Updated system coordinates: %v \n\n", v.sysCoord.Proto(0).Value)
+				v.logger.Log(fmt.Sprintf("RTT filtered: %f", rttFiltered))
+				v.logger.Log(fmt.Sprintf("Error: %f", v.error))
+				v.logger.Log(fmt.Sprintf("Updated system coordinates: %v \n\n", v.sysCoord.Proto(0).Value))
 				_ = os.Stdout.Sync()
 			}
 		}
@@ -174,15 +178,13 @@ func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.Vivaldi
 	// Update the local coordinates
 	delta := v.cc * w
 	multiplier := delta * (rttFiltered - norm2Dist)
-	v.sysCoord = m.InstanceSpace.Add(v.sysCoord, m.InstanceSpace.Multiply(m.InstanceSpace.Subtract(v.sysCoord, remoteCoordinate).GetUnitVector(), multiplier))
-
-	//fmt.Println("Remote coordinate: ", receivedProtoCoordinates.Value)
-	//fmt.Println("Norm2 distance: ", norm2Dist)
-	//fmt.Println("W: ", w)
-	//fmt.Println("Epsilon: ", epsilon)
-	//fmt.Println("Alpha: ", alpha)
-	//fmt.Println("Delta: ", delta)
-	//_ = os.Stdout.Sync()
+	v.sysCoord = m.InstanceSpace.Add(
+		v.sysCoord,
+		m.InstanceSpace.Multiply(
+			m.InstanceSpace.Subtract(
+				v.sysCoord,
+				remoteCoordinate).GetUnitVector(),
+			multiplier))
 
 	return rttFiltered
 }

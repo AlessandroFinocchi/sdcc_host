@@ -6,6 +6,8 @@ import (
 	u "github.com/AlessandroFinocchi/sdcc_common/utils"
 	"math"
 	"os"
+	uh "sdcc_host/utils"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -27,6 +29,7 @@ type InMemoryStore struct {
 	mu        *sync.RWMutex
 	coords    map[string]GossipCoordinate
 	neighbour GossipCoordinate
+	logger    uh.MyLogger
 }
 
 func NewStore() Store {
@@ -35,9 +38,11 @@ func NewStore() Store {
 
 func NewInMemoryStore() *InMemoryStore {
 	coordinateDimensions, err := u.ReadConfigInt("config.ini", "vivaldi", "coordinate_dimensions")
-	if err != nil {
+	logging, errL := strconv.ParseBool(os.Getenv(LoggingGossipEnv))
+	if err != nil || errL != nil {
 		panic("Failed to read config for store")
 	}
+
 	if SpaceType == 2 {
 		coordinateDimensions += 1 // for height
 	}
@@ -55,6 +60,7 @@ func NewInMemoryStore() *InMemoryStore {
 		mu:        &sync.RWMutex{},
 		coords:    make(map[string]GossipCoordinate),
 		neighbour: neighbour,
+		logger:    uh.NewMyLogger(logging),
 	}
 
 	go s.DeleteOutdatedItems()
@@ -108,10 +114,12 @@ func (s *InMemoryStore) UpdateNeighbour(storingCoord GossipCoordinate, appCoord 
 
 	if InstanceSpace.GetNorm2Distance(s.neighbour.Coord(), appCoord.Coord()) > InstanceSpace.GetNorm2Distance(storingCoord.Coord(), appCoord.Coord()) {
 		s.neighbour = s.coords[storingCoord.node.GetId()]
-		fmt.Print("Neighbour updated: ",
-			s.neighbour.Node().GetMembershipIp(), ":",
-			s.neighbour.Node().GetMembershipPort(), ":",
-			s.neighbour.Coord().Proto(1).Value, "\n\n")
+		s.logger.Log(fmt.Sprintf("Neighbour updated: %s:%d:%v\n\n",
+			s.neighbour.Node().GetMembershipIp(),
+			s.neighbour.Node().GetMembershipPort(),
+			s.neighbour.Coord().Proto(1).Value))
+
+		_ = os.Stdout.Sync()
 	}
 }
 func (s *InMemoryStore) GetNeighbourCoords() (Coordinate, bool) {
@@ -153,11 +161,12 @@ func (s *InMemoryStore) FindNeighbour(appCoord GossipCoordinate) {
 func (s *InMemoryStore) PrintItems() {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	fmt.Println("Stored items at ", time.Now().In(Location), ":")
+
+	s.logger.Log(fmt.Sprintf("Stored items at %s:", time.Now().In(Location)))
 	for _, item := range s.Items() {
-		fmt.Println(item.Node().GetMembershipIp(), ":", item.Coord().Proto(1).Value, "", item.Age())
+		s.logger.Log(fmt.Sprintf("%s: %v %v", item.Node().GetMembershipIp(), item.Coord().Proto(1).Value, item.Age()))
 	}
-	fmt.Println()
+	s.logger.Log("")
 	_ = os.Stdout.Sync()
 }
 func (s *InMemoryStore) DeleteOutdatedItems() {

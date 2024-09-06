@@ -10,7 +10,10 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"math/rand"
+	"os"
+	uh "sdcc_host/utils"
 	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -22,16 +25,19 @@ type PartialView struct {
 	swappers          int
 	mu                *sync.RWMutex
 	r                 *rand.Rand
+	logger            uh.MyLogger
 }
 
 func NewPartialView(currentServerNode *pb.Node, nodeList []*pb.Node) *PartialView {
 	var healers, swappers int
-	viewSize, err := u.ReadConfigInt("config.ini", "membership", "c")
-	if err != nil {
-		log.Fatalf("Failed to read config: %v", err)
-	}
-	viewSelection := u.ReadConfigString("config.ini", "membership", "view_selection")
 
+	viewSize, err := u.ReadConfigInt("config.ini", "membership", "c")
+	logging, errL := strconv.ParseBool(os.Getenv(LoggingMembershipEnv))
+	if err != nil || errL != nil {
+		log.Fatalf("Failed to read config in partial view")
+	}
+
+	viewSelection := u.ReadConfigString("config.ini", "membership", "view_selection")
 	switch viewSelection {
 	case "blind":
 		healers = 0
@@ -88,6 +94,7 @@ func NewPartialView(currentServerNode *pb.Node, nodeList []*pb.Node) *PartialVie
 		swappers:          swappers,
 		mu:                &sync.RWMutex{},
 		r:                 rand.New(rand.NewSource(42)),
+		logger:            uh.NewMyLogger(logging),
 	}
 }
 
@@ -275,11 +282,14 @@ func (pv *PartialView) MergeViews(nodes []*pb.Node) {
 		pv.increaseAge(1 - youngestDesc.age)
 	}
 
-	//fmt.Println("Merged view")
-	//for _, desc := range pv.descList {
-	//	fmt.Println(desc.receiverServerNode.Id, ": ", cm.ProtoNodeMembershipAddress(desc.receiverServerNode), " age: ", desc.age)
-	//}
-	//fmt.Println()
+	pv.logger.Log("Merged view")
+	for _, desc := range pv.descList {
+		pv.logger.Log(fmt.Sprintf("%s: %s age: %d",
+			desc.receiverServerNode.Id,
+			cm.ProtoNodeMembershipAddress(desc.receiverServerNode),
+			desc.age))
+	}
+	pv.logger.Log("")
 }
 
 func (pv *PartialView) increaseAge(n int) {

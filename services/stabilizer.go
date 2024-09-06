@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	m "sdcc_host/model"
+	uh "sdcc_host/utils"
+	"strconv"
 	"time"
 )
 
@@ -22,6 +24,7 @@ type Stabilizer struct {
 	wsCentroid     m.Coordinate  // centroid of start window
 	coordDimension int
 	vivaldiGossip  *VivaldiGossip
+	logger         uh.MyLogger
 }
 
 func NewStabilizer(vivaldiGossip *VivaldiGossip) *Stabilizer {
@@ -30,8 +33,9 @@ func NewStabilizer(vivaldiGossip *VivaldiGossip) *Stabilizer {
 	epsilonR, err3 := u.ReadConfigFloat64("config.ini", "vivaldi", "epsilon_r")
 	dimension, err4 := u.ReadConfigInt("config.ini", "vivaldi", "coordinate_dimensions")
 	intervalUpdate, err5 := u.ReadConfigInt("config.ini", "vivaldi_gossip", "retention_seconds")
-	if err1 != nil || err2 != nil || err3 != nil || err4 != nil || err5 != nil {
-		log.Fatalf("Failed to read config: %v", err1)
+	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingGossipEnv))
+	if err1 != nil || err2 != nil || err3 != nil || err4 != nil || err5 != nil || errL != nil {
+		log.Fatalf("Failed to read config in stabilizer")
 	}
 
 	if m.SpaceType == 2 {
@@ -49,6 +53,7 @@ func NewStabilizer(vivaldiGossip *VivaldiGossip) *Stabilizer {
 		intervalUpdate: time.Duration(intervalUpdate/4) * time.Second,
 		coordDimension: dimension,
 		vivaldiGossip:  vivaldiGossip,
+		logger:         uh.NewMyLogger(logging),
 	}
 }
 
@@ -79,9 +84,9 @@ func (s *Stabilizer) Update(systemCoord *m.Coordinate, node *pb.Node) {
 		check := energyCheck || relativeCheck
 
 		if check {
-			fmt.Println("Coordinate updated")
-			fmt.Println("System coordinate: ", (*systemCoord).Proto(1).Value)
-			fmt.Print("App coordinate:     ", s.appCoord.Proto(1).Value, "\n\n")
+			s.logger.Log("Coordinate updated")
+			s.logger.Log(fmt.Sprintf("System coordinate: %v", (*systemCoord).Proto(1).Value))
+			s.logger.Log(fmt.Sprintf("App coordinate:     %v\n", s.appCoord.Proto(1).Value))
 			_ = os.Stdout.Sync()
 
 			s.startWindow = s.startWindow[:0]

@@ -10,7 +10,10 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	m "sdcc_host/model"
+	uh "sdcc_host/utils"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -24,6 +27,7 @@ type VivaldiGossip struct {
 	maxFeedbackCounter int
 	sendingCoordsNum   int
 	mu                 *sync.RWMutex
+	logger             uh.MyLogger
 }
 
 func (v *VivaldiGossip) MaxFeedbackCounter() int {
@@ -33,8 +37,8 @@ func (v *VivaldiGossip) MaxFeedbackCounter() int {
 func NewVivaldiGossip() *VivaldiGossip {
 	maxFeedbackCounter, err1 := u.ReadConfigInt("config.ini", "vivaldi_gossip", "feedback_counter")
 	sendingCoordsNum, err2 := u.ReadConfigInt("config.ini", "vivaldi_gossip", "feedback_coords_num")
-
-	if err1 != nil || err2 != nil {
+	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingGossipEnv))
+	if err1 != nil || err2 != nil || errL != nil {
 		log.Fatalf("Failed to read config for gossiping vivaldi")
 	}
 
@@ -47,6 +51,7 @@ func NewVivaldiGossip() *VivaldiGossip {
 		maxFeedbackCounter: maxFeedbackCounter,
 		sendingCoordsNum:   sendingCoordsNum,
 		mu:                 &sync.RWMutex{},
+		logger:             uh.NewMyLogger(logging),
 	}
 }
 
@@ -107,9 +112,9 @@ func (v *VivaldiGossip) StartClient() {
 		if ok {
 			sentCoords := v.SelectCoordinates()
 
-			receivedCoords, err := desc.GossipCoordinates(sentCoords)
-			if err != nil {
-				fmt.Printf("Failed to gossip coordinates: %v\n", err)
+			receivedCoords, errG := desc.GossipCoordinates(sentCoords)
+			if errG != nil {
+				v.logger.Log(fmt.Sprintf("Failed to gossip coordinates: %v\n", errG))
 				v.pView.RemoveDescriptor(desc)
 				v.removeInfected(desc.GetReceiverNode().GetId())
 				v.removeRemoved(desc.GetReceiverNode().GetId())
@@ -150,9 +155,8 @@ func (v *VivaldiGossip) SelectCoordinates() *pb.GossipCoordinateList {
 
 func (v *VivaldiGossip) Update(gossipCoord ...*pb.GossipCoordinate) []*pb.GossipCoordinate {
 	var sendingCoords = make([]*pb.GossipCoordinate, 0)
-	//fmt.Println("Received coordinates: ")
+
 	for _, receivedCoord := range gossipCoord {
-		//fmt.Println(receivedCoord.Node.GetMembershipIp(), ":", receivedCoord.GetTime().AsTime())
 		key := receivedCoord.GetNode().GetId()
 
 		if c, ok := v.infected[key]; ok { // if infected
@@ -173,8 +177,7 @@ func (v *VivaldiGossip) Update(gossipCoord ...*pb.GossipCoordinate) []*pb.Gossip
 			v.addInfected(receivedCoord)
 		}
 	}
-	//fmt.Println()
-	//_ = os.Stdout.Sync()
+
 	return sendingCoords
 }
 
