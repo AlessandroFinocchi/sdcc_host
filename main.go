@@ -47,7 +47,7 @@ func main() {
 	// Start client protocols
 	go membershipProtocol.StartClient()
 	go vivaldiProtocol.StartClient()
-	go vivaldiGossip.StartClient()
+	//go vivaldiGossip.StartClient()
 
 	select {}
 }

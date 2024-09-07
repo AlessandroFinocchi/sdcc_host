@@ -138,7 +138,7 @@ func (v *VivaldiProtocol) StartClient() {
 				rttFiltered := v.UpdateCoordinates(coords, rtt, desc.GetReceiverNode().GetId())
 
 				// Update the stabilizer
-				v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
+				//v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
 
 				v.logger.Log(fmt.Sprintf("RTT filtered: %f", rttFiltered))
 				v.logger.Log(fmt.Sprintf("Error: %f", v.error))
