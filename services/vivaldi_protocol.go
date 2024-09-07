@@ -123,8 +123,9 @@ func (v *VivaldiProtocol) StartClient() {
 	}
 
 	// Distribute the coordinates
-	ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
-	for range ticker.C {
+	//ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
+	//for range ticker.C {
+	for {
 		desc, ok := v.pView.GetRandomDescriptor()
 		if ok {
 			startTime := time.Now().In(m.Location)
@@ -146,6 +147,7 @@ func (v *VivaldiProtocol) StartClient() {
 				_ = os.Stdout.Sync()
 			}
 		}
+		time.Sleep(time.Duration(rand.Intn(2*samplingInterval+1)) * time.Second)
 	}
 }
 
