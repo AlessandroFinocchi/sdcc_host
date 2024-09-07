@@ -75,8 +75,8 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
 }
 
 func (v *VivaldiProtocol) PullCoordinates(ctx context.Context, _ *pb.Empty) (*pb.VivaldiCoordinate, error) {
-	v.mu.Lock()
-	defer v.mu.Unlock()
+	v.mu.RLock()
+	defer v.mu.RUnlock()
 
 	if err := u.ContextError(ctx); err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (v *VivaldiProtocol) StartClient() {
 		if ok {
 			startTime := time.Now().In(m.Location)
 			coords, errV := desc.PullCoordinates()
-			rtt := time.Since(startTime)
+			rtt := time.Now().Sub(startTime)
 			if errV != nil {
 				v.logger.Log(fmt.Sprintf("Failed to pull coordinates: %v", errV))
 				v.pView.RemoveDescriptor(desc)
