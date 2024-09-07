@@ -30,18 +30,12 @@ func (s EuclideanSpace) NewCoordinate(point []float64) Coordinate {
 func (s EuclideanSpace) GetRandomUnitVector(dimension int) Coordinate {
 	// Generate a random unit vector
 	unitVector := make([]float64, dimension)
-	var sum float64
+
 	for i := 0; i < dimension; i++ {
-		unitVector[i] = rand.Float64()
-		sum += unitVector[i] * unitVector[i]
+		unitVector[i] = rand.Float64() - 0.5
 	}
 
-	sum = math.Sqrt(sum)
-	for i := 0; i < dimension; i++ {
-		unitVector[i] /= sum
-	}
-
-	return s.NewCoordinate(unitVector)
+	return s.NewCoordinate(unitVector).GetUnitVector()
 }
 func (s EuclideanSpace) Proto2Coordinate(pc *pb.VivaldiCoordinate) Coordinate {
 	return s.NewCoordinate(pc.Value)
@@ -108,26 +102,16 @@ func (s HeightVectorEuclideanSpace) NewCoordinate(point []float64) Coordinate {
 func (s HeightVectorEuclideanSpace) GetRandomUnitVector(dimension int) Coordinate {
 	// Generate a random unit vector
 	unitVector := make([]float64, dimension)
-	sum := 0.0
-
 	// coordinate
 	for i := 0; i < dimension; i++ {
-		unitVector[i] = rand.Float64()
-		sum += unitVector[i] * unitVector[i]
+		unitVector[i] = rand.Float64() - 0.5
 	}
 
 	// height
 	height := rand.Float64()
 	unitVector = append(unitVector, height)
 
-	sum = math.Sqrt(sum) // sum = ||x||
-	sum += height        // sum = ||x|| + h
-
-	for i := 0; i < dimension; i++ {
-		unitVector[i] /= sum
-	}
-
-	return s.NewCoordinate(unitVector)
+	return s.NewCoordinate(unitVector).GetUnitVector()
 }
 func (s HeightVectorEuclideanSpace) Proto2Coordinate(pc *pb.VivaldiCoordinate) Coordinate {
 	return s.NewCoordinate(pc.Value)
