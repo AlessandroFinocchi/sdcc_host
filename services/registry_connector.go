@@ -38,7 +38,6 @@ func NewRegistryConnectorClient() (*RegistryConnectorClient, string) {
 
 func (rc *RegistryConnectorClient) startHeartbeat(h pb.HeartbeatClient, ctx context.Context, currentNode *pb.Node) {
 	for {
-		time.Sleep(time.Duration(rand.Intn(8)) * time.Second)
 		ctxT, cancel := context.WithTimeout(ctx, 10*time.Second)
 		_, err := h.Beat(ctxT, &pb.Node{
 			Id:             currentNode.GetId(),
@@ -52,6 +51,7 @@ func (rc *RegistryConnectorClient) startHeartbeat(h pb.HeartbeatClient, ctx cont
 			log.Fatalf("Could not send heartbeat: %v", err)
 		}
 		cancel()
+		time.Sleep(time.Duration(rand.Intn(10)+1) * time.Second)
 	}
 }
 
