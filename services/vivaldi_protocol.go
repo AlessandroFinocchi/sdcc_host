@@ -75,8 +75,8 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
 }
 
 func (v *VivaldiProtocol) PullCoordinates(ctx context.Context, _ *pb.Empty) (*pb.VivaldiCoordinate, error) {
-	//v.mu.RLock()
-	//defer v.mu.RUnlock()
+	v.mu.RLock()
+	defer v.mu.RUnlock()
 
 	if err := u.ContextError(ctx); err != nil {
 		return nil, err
@@ -127,27 +127,24 @@ func (v *VivaldiProtocol) StartClient() {
 	for range ticker.C {
 		desc, ok := v.pView.GetRandomDescriptor()
 		if ok {
-			go func() {
-				startTime := time.Now().In(m.Location)
-				coords, errV := desc.PullCoordinates()
-				rtt := time.Since(startTime)
-				if errV != nil {
-					v.logger.Log(fmt.Sprintf("Failed to pull coordinates: %v", errV))
-					v.pView.RemoveDescriptor(desc)
-				} else {
-					// Update the local coordinates
-					rttFiltered := v.UpdateCoordinates(coords, rtt, desc.GetReceiverNode().GetId())
+			startTime := time.Now().In(m.Location)
+			coords, errV := desc.PullCoordinates()
+			rtt := time.Since(startTime)
+			if errV != nil {
+				v.logger.Log(fmt.Sprintf("Failed to pull coordinates: %v", errV))
+				v.pView.RemoveDescriptor(desc)
+			} else {
+				// Update the local coordinates
+				rttFiltered := v.UpdateCoordinates(coords, rtt, desc.GetReceiverNode().GetId())
 
-					// Update the stabilizer
-					//v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
+				// Update the stabilizer
+				v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
 
-					v.logger.Log(fmt.Sprintf("RTT: %v", rtt))
-					v.logger.Log(fmt.Sprintf("RTT filtered: %f", rttFiltered))
-					v.logger.Log(fmt.Sprintf("Error: %f", v.error))
-					v.logger.Log(fmt.Sprintf("Updated system coordinates: %v \n\n", v.sysCoord.Proto(0).Value))
-					_ = os.Stdout.Sync()
-				}
-			}()
+				v.logger.Log(fmt.Sprintf("RTT filtered: %f", rttFiltered))
+				v.logger.Log(fmt.Sprintf("Error: %f", v.error))
+				v.logger.Log(fmt.Sprintf("Updated system coordinates: %v \n\n", v.sysCoord.Proto(0).Value))
+				_ = os.Stdout.Sync()
+			}
 		}
 	}
 }
