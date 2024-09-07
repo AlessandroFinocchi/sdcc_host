@@ -75,8 +75,8 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
 }
 
 func (v *VivaldiProtocol) PullCoordinates(ctx context.Context, _ *pb.Empty) (*pb.VivaldiCoordinate, error) {
-	v.mu.RLock()
-	defer v.mu.RUnlock()
+	//v.mu.RLock()
+	//defer v.mu.RUnlock()
 
 	if err := u.ContextError(ctx); err != nil {
 		return nil, err
