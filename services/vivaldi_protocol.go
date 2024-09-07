@@ -129,7 +129,6 @@ func (v *VivaldiProtocol) StartClient() {
 		if ok {
 			startTime := time.Now().In(m.Location)
 			coords, errV := desc.PullCoordinates()
-			// Plus one to avoid rtt being zero, microseconds seems to be a right magnitude
 			rtt := time.Since(startTime)
 			if errV != nil {
 				v.logger.Log(fmt.Sprintf("Failed to pull coordinates: %v", errV))
@@ -163,6 +162,7 @@ func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.Vivaldi
 	remoteCoordinate := m.InstanceSpace.Proto2Coordinate(receivedProtoCoordinates)
 	remoteError := receivedProtoCoordinates.GetError()
 	rttFiltered := float64(v.filter.FilterCoordinates(receiverNodeId, rtt).Milliseconds())
+	rttFiltered = 400
 	norm2Dist := m.InstanceSpace.GetNorm2Distance(v.sysCoord, remoteCoordinate)
 
 	// Sample weight balances local and remote confidences
