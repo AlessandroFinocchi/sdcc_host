@@ -8,6 +8,7 @@ import (
 	u "github.com/AlessandroFinocchi/sdcc_common/utils"
 	"google.golang.org/grpc"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	m "sdcc_host/model"
@@ -92,8 +93,9 @@ func (mp *MembershipProtocol) StartClient() {
 	}
 
 	// Distribute the coordinates
-	ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
-	for range ticker.C {
+	//ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
+	//for range ticker.C {
+	for {
 		desc, ok := mp.pView.GetRandomDescriptor()
 		if ok {
 			request := &pb.MembershipRequestMessage{
@@ -109,6 +111,7 @@ func (mp *MembershipProtocol) StartClient() {
 				mp.pView.MergeViews(reply.GetNodes())
 			}
 		}
+		time.Sleep(time.Duration(rand.Intn(4*samplingInterval+1)) * time.Second)
 	}
 }
 

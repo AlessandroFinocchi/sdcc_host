@@ -106,8 +106,9 @@ func (v *VivaldiGossip) StartClient() {
 	}
 
 	// Distribute the coordinates
-	ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
-	for range ticker.C {
+	//ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
+	//for range ticker.C {
+	for {
 		desc, ok := v.pView.GetRandomDescriptor()
 		if ok {
 			sentCoords := v.SelectCoordinates()
@@ -123,6 +124,7 @@ func (v *VivaldiGossip) StartClient() {
 				v.store.PrintItems()
 			}
 		}
+		time.Sleep(time.Duration(rand.Intn(4*samplingInterval+1)) * time.Second)
 	}
 }
 

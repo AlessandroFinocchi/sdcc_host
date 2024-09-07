@@ -147,7 +147,7 @@ func (v *VivaldiProtocol) StartClient() {
 				_ = os.Stdout.Sync()
 			}
 		}
-		time.Sleep(time.Duration(rand.Intn(2*samplingInterval+1)) * time.Second)
+		time.Sleep(time.Duration(rand.Intn(4*samplingInterval+1)) * time.Second)
 	}
 }
 
