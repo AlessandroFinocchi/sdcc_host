@@ -94,7 +94,7 @@ func (s *Stabilizer) Update(systemCoord *m.Coordinate, node *pb.Node) {
 
 			s.lastUpdate = time.Now().In(m.Location)
 			gossipCoord := m.NewGossipCoordinate(s.appCoord, node, s.lastUpdate, s.vivaldiGossip.MaxFeedbackCounter())
-			s.vivaldiGossip.Update(m.GossipCoordinate2Proto(gossipCoord))
+			go s.vivaldiGossip.Update(m.GossipCoordinate2Proto(gossipCoord))
 		}
 	}
 }
