@@ -178,13 +178,9 @@ func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.Vivaldi
 	// Update the local coordinates
 	delta := v.cc * w
 	multiplier := delta * (rttFiltered - norm2Dist)
-	v.sysCoord = m.InstanceSpace.Add(
-		v.sysCoord,
-		m.InstanceSpace.Multiply(
-			m.InstanceSpace.Subtract(
-				v.sysCoord,
-				remoteCoordinate).GetUnitVector(),
-			multiplier))
+	unitV := m.InstanceSpace.Subtract(v.sysCoord, remoteCoordinate).GetUnitVector()
+	shift := m.InstanceSpace.Multiply(unitV, multiplier)
+	v.sysCoord = m.InstanceSpace.Add(v.sysCoord, shift)
 
 	return rttFiltered
 }

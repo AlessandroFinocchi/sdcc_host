@@ -83,8 +83,8 @@ func (c HeightVectorCoordinate) GetUnitVector() Coordinate {
 		sum += c.Point[i] * c.Point[i]
 	}
 
-	sum = math.Sqrt(sum) // sum = ||x||
-	sum += c.Height      // sum = ||x|| + h
+	sum = math.Sqrt(sum)      // sum = ||x||
+	sum += math.Abs(c.Height) // sum = ||x|| + h
 
 	if sum == 0 {
 		return c.GetRandomUnitVector(c.GetDimension())

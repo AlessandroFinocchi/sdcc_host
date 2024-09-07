@@ -149,7 +149,7 @@ func (s HeightVectorEuclideanSpace) Subtract(c1 Coordinate, c2 Coordinate) Coord
 		difference[i] = c1.GetPoint()[i] - c2.GetPoint()[i]
 	}
 
-	return s.NewCoordinate(append(difference, c1.GetHeight()+c2.GetHeight()))
+	return s.NewCoordinate(append(difference, math.Abs(c1.GetHeight()+c2.GetHeight())))
 }
 func (s HeightVectorEuclideanSpace) Multiply(c Coordinate, scalar float64) Coordinate {
 	product := make([]float64, c.GetDimension())
