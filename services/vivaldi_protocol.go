@@ -140,6 +140,7 @@ func (v *VivaldiProtocol) StartClient() {
 				// Update the stabilizer
 				//v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
 
+				v.logger.Log(fmt.Sprintf("RTT: %v", rtt))
 				v.logger.Log(fmt.Sprintf("RTT filtered: %f", rttFiltered))
 				v.logger.Log(fmt.Sprintf("Error: %f", v.error))
 				v.logger.Log(fmt.Sprintf("Updated system coordinates: %v \n\n", v.sysCoord.Proto(0).Value))
