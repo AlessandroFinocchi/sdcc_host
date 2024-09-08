@@ -14,6 +14,7 @@ var (
 	GossipPort           = flag.Uint("gossip_port", 50154, "Gossip server port")
 
 	LoggingEnv           = "LOGGING"
+	LogginResultEnv      = "RESULT_LOGGING"
 	LoggingMembershipEnv = "MEMBERSHIP_LOGGING"
 	LoggingVivaldiEnv    = "VIVALDI_LOGGING"
 	LoggingGossipEnv     = "GOSSIPING_LOGGING"

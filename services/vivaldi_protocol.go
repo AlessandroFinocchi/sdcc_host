@@ -22,16 +22,17 @@ import (
 
 type VivaldiProtocol struct {
 	pb.UnimplementedVivaldiServer
-	sysCoord   m.Coordinate
-	error      float64
-	pView      *m.PartialView
-	cc         float64
-	ce         float64
-	filter     vivaldi.Filter
-	stabilizer *Stabilizer
-	mu         *sync.RWMutex
-	logger     uh.MyLogger
-	round      int64
+	sysCoord          m.Coordinate
+	error             float64
+	pView             *m.PartialView
+	cc                float64
+	ce                float64
+	filter            vivaldi.Filter
+	stabilizer        *Stabilizer
+	mu                *sync.RWMutex
+	logger            uh.MyLogger
+	round             int64
+	resultFileEnabled bool
 }
 
 func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *VivaldiProtocol {
@@ -40,7 +41,8 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *Vi
 	coordinateDimensions, err3 := u.ReadConfigInt("config.ini", "vivaldi", "coordinate_dimensions")
 	cs := u.ReadConfigString("config.ini", "vivaldi", "coordinate_space")
 	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingVivaldiEnv))
-	if err1 != nil || err2 != nil || err3 != nil || errL != nil {
+	resultFileEnabled, errR := strconv.ParseBool(os.Getenv(m.LogginResultEnv))
+	if err1 != nil || err2 != nil || err3 != nil || errL != nil || errR != nil {
 		log.Fatalf("Failed to read config in vivaldi protcol: %v", err1)
 	}
 
@@ -62,16 +64,17 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *Vi
 	sysCoord := m.InstanceSpace.NewCoordinate(randomSlice)
 
 	return &VivaldiProtocol{
-		sysCoord:   sysCoord,
-		error:      1,
-		pView:      nil,
-		cc:         cc,
-		ce:         ce,
-		filter:     filter,
-		stabilizer: NewStabilizer(vivaldiGossip),
-		mu:         &sync.RWMutex{},
-		logger:     uh.NewMyLogger(logging),
-		round:      0,
+		sysCoord:          sysCoord,
+		error:             1,
+		pView:             nil,
+		cc:                cc,
+		ce:                ce,
+		filter:            filter,
+		stabilizer:        NewStabilizer(vivaldiGossip),
+		mu:                &sync.RWMutex{},
+		logger:            uh.NewMyLogger(logging),
+		round:             0,
+		resultFileEnabled: resultFileEnabled,
 	}
 
 }
@@ -143,19 +146,7 @@ func (v *VivaldiProtocol) StartClient() {
 				v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
 
 				// Log the results
-				file, errO := os.OpenFile("/data/results.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0664) // Write the file to /data (mapped to a volume)
-				if errO != nil {
-					v.logger.Log(fmt.Sprintf("Error opening file: %v", errO))
-				} else {
-					_, errW := file.WriteString(fmt.Sprintf("%d, %f\n", v.round, v.error))
-					if errW != nil {
-						v.logger.Log(fmt.Sprintf("Error writing to file: %v", errW))
-					} else {
-						v.logger.Log(fmt.Sprintf("Correctly wrote to file"))
-						v.round++
-					}
-				}
-				_ = file.Close()
+				v.writeFileResult(v.round, v.error)
 
 				// log
 				v.logger.Log(fmt.Sprintf("RTT filtered: %f", rttFiltered))
@@ -201,4 +192,23 @@ func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.Vivaldi
 	v.sysCoord = m.InstanceSpace.Add(v.sysCoord, shift)
 
 	return rttFiltered, norm2Dist
+}
+
+func (v *VivaldiProtocol) writeFileResult(round int64, error float64) {
+	if !v.resultFileEnabled {
+		return
+	}
+	file, errO := os.OpenFile("/data/results.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0664) // Write the file to /data (mapped to a volume)
+	if errO != nil {
+		v.logger.Log(fmt.Sprintf("Error opening file: %v", errO))
+	} else {
+		_, errW := file.WriteString(fmt.Sprintf("%d, %f\n", v.round, v.error))
+		if errW != nil {
+			v.logger.Log(fmt.Sprintf("Error writing to file: %v", errW))
+		} else {
+			v.logger.Log(fmt.Sprintf("Correctly wrote to file"))
+			v.round++
+		}
+	}
+	_ = file.Close()
 }
