@@ -8,18 +8,20 @@ import (
 func main() {
 	file, err := os.Open("results.txt") // Write the file to /data (mapped to a volume)
 	if err != nil {
-		fmt.Println("Error creating file:", err)
-		return
+		fmt.Println("Error opening file:", err)
+		select {}
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 	_, err = file.WriteString("Hello, Docker!\n")
 	if err != nil {
 		fmt.Println("Error writing to file:", err)
-		return
+		select {}
 	}
 
 	fmt.Println("Successfully wrote to output.txt")
-	return
+	select {}
 	//ctx := context.Background()
 	//
 	//// Initialize Protocols

@@ -16,4 +16,6 @@ EXPOSE 50152 50153 50154
 
 RUN go build -o /sdcc_host
 
+RUN mkdir -p /data
+
 ENTRYPOINT ["sh", "host_setup.sh"]
