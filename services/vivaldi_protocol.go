@@ -33,7 +33,7 @@ type VivaldiProtocol struct {
 	logger     uh.MyLogger
 }
 
-func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
+func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *VivaldiProtocol {
 	cc, err1 := u.ReadConfigFloat64("config.ini", "vivaldi", "cc")
 	ce, err2 := u.ReadConfigFloat64("config.ini", "vivaldi", "ce")
 	coordinateDimensions, err3 := u.ReadConfigInt("config.ini", "vivaldi", "coordinate_dimensions")
@@ -66,7 +66,7 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
 		pView:      nil,
 		cc:         cc,
 		ce:         ce,
-		filter:     vivaldi.NewFilter(),
+		filter:     filter,
 		stabilizer: NewStabilizer(vivaldiGossip),
 		mu:         &sync.RWMutex{},
 		logger:     uh.NewMyLogger(logging),
