@@ -31,6 +31,7 @@ type VivaldiProtocol struct {
 	stabilizer *Stabilizer
 	mu         *sync.RWMutex
 	logger     uh.MyLogger
+	round      int64
 }
 
 func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *VivaldiProtocol {
@@ -70,6 +71,7 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *Vi
 		stabilizer: NewStabilizer(vivaldiGossip),
 		mu:         &sync.RWMutex{},
 		logger:     uh.NewMyLogger(logging),
+		round:      0,
 	}
 
 }
@@ -135,14 +137,28 @@ func (v *VivaldiProtocol) StartClient() {
 				v.pView.RemoveDescriptor(desc)
 			} else {
 				// Update the local coordinates
-				rttFiltered := v.UpdateCoordinates(coords, rtt, desc.GetReceiverNode().GetId())
+				rttFiltered, rttPredicted := v.UpdateCoordinates(coords, rtt, desc.GetReceiverNode().GetId())
 
 				// Update the stabilizer
 				v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
 
+				// Log the results
+				file, errO := os.Open("/data/results.txt") // Write the file to /data (mapped to a volume)
+				if errO != nil {
+					v.logger.Log(fmt.Sprintf("Error opening file: %v", errO))
+				}
+				_, errW := file.WriteString(fmt.Sprintf("%d, %f\n", v.round, v.error))
+				if errW != nil {
+					v.logger.Log(fmt.Sprintf("Error writing to file: %v", errW))
+				}
+				v.round++
+				_ = file.Close()
+
+				// log
 				v.logger.Log(fmt.Sprintf("RTT filtered: %f", rttFiltered))
+				v.logger.Log(fmt.Sprintf("RTT predicted: %f", rttPredicted))
 				v.logger.Log(fmt.Sprintf("Error: %f", v.error))
-				v.logger.Log(fmt.Sprintf("Updated system coordinates: %v \n\n", v.sysCoord.Proto(0).Value))
+				v.logger.Log(fmt.Sprintf("Updated system coordinates: %v \n", v.sysCoord.Proto(0).Value))
 				_ = os.Stdout.Sync()
 			}
 		}
@@ -155,7 +171,7 @@ func (v *VivaldiProtocol) SetPartialView(view *m.PartialView) {
 	}
 }
 
-func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.VivaldiCoordinate, rtt time.Duration, receiverNodeId string) float64 {
+func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.VivaldiCoordinate, rtt time.Duration, receiverNodeId string) (float64, float64) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 
@@ -181,5 +197,5 @@ func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.Vivaldi
 	shift := m.InstanceSpace.Multiply(unitV, multiplier)
 	v.sysCoord = m.InstanceSpace.Add(v.sysCoord, shift)
 
-	return rttFiltered
+	return rttFiltered, norm2Dist
 }
