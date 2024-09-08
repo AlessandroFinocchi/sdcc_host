@@ -12,6 +12,7 @@ import (
 	"os"
 	m "sdcc_host/model"
 	uh "sdcc_host/utils"
+	"sdcc_host/vivaldi"
 	"strconv"
 	"sync"
 	"time"
@@ -22,9 +23,10 @@ type MembershipProtocol struct {
 	pView  *m.PartialView
 	mu     *sync.RWMutex
 	logger uh.MyLogger
+	filter vivaldi.Filter
 }
 
-func NewMembershipProtocol() *MembershipProtocol {
+func NewMembershipProtocol(filter vivaldi.Filter) *MembershipProtocol {
 	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingMembershipEnv))
 	if errL != nil {
 		log.Fatalf("Could not read configuration in membership: %v", errL)
@@ -32,6 +34,7 @@ func NewMembershipProtocol() *MembershipProtocol {
 	return &MembershipProtocol{
 		mu:     &sync.RWMutex{},
 		logger: uh.NewMyLogger(logging),
+		filter: filter,
 	}
 }
 
@@ -101,7 +104,10 @@ func (mp *MembershipProtocol) StartClient() {
 				Source: mp.pView.GetCurrentServerNode(),
 			}
 
+			startTime := time.Now().In(m.Location)
 			reply, errM := desc.ShufflePeers(request)
+			rtt := time.Since(startTime)
+			mp.filter.FilterCoordinates(desc.GetReceiverNode().GetId(), rtt)
 			if errM != nil {
 				mp.logger.Log(fmt.Sprintf("failed to shuffle peers: %v\n", errM))
 				mp.pView.RemoveDescriptor(desc)
