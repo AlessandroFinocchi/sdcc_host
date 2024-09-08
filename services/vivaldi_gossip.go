@@ -13,7 +13,6 @@ import (
 	"os"
 	m "sdcc_host/model"
 	uh "sdcc_host/utils"
-	"sdcc_host/vivaldi"
 	"strconv"
 	"sync"
 	"time"
@@ -29,14 +28,13 @@ type VivaldiGossip struct {
 	sendingCoordsNum   int
 	mu                 *sync.RWMutex
 	logger             uh.MyLogger
-	filter             vivaldi.Filter
 }
 
 func (v *VivaldiGossip) MaxFeedbackCounter() int {
 	return v.maxFeedbackCounter
 }
 
-func NewVivaldiGossip(filter vivaldi.Filter) *VivaldiGossip {
+func NewVivaldiGossip() *VivaldiGossip {
 	maxFeedbackCounter, err1 := u.ReadConfigInt("config.ini", "vivaldi_gossip", "feedback_counter")
 	sendingCoordsNum, err2 := u.ReadConfigInt("config.ini", "vivaldi_gossip", "feedback_coords_num")
 	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingGossipEnv))
@@ -54,7 +52,6 @@ func NewVivaldiGossip(filter vivaldi.Filter) *VivaldiGossip {
 		sendingCoordsNum:   sendingCoordsNum,
 		mu:                 &sync.RWMutex{},
 		logger:             uh.NewMyLogger(logging),
-		filter:             filter,
 	}
 }
 
@@ -109,17 +106,13 @@ func (v *VivaldiGossip) StartClient() {
 	}
 
 	// Distribute the coordinates
-	//ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
-	//for range ticker.C {
-	for {
+	ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
+	for range ticker.C {
 		desc, ok := v.pView.GetRandomDescriptor()
 		if ok {
 			sentCoords := v.SelectCoordinates()
 
-			startTime := time.Now().In(m.Location)
 			receivedCoords, errG := desc.GossipCoordinates(sentCoords)
-			rtt := time.Since(startTime)
-			_ = v.filter.FilterCoordinates(desc.GetReceiverNode().GetId(), rtt)
 			if errG != nil {
 				v.logger.Log(fmt.Sprintf("Failed to gossip coordinates: %v\n", errG))
 				v.pView.RemoveDescriptor(desc)
@@ -130,7 +123,6 @@ func (v *VivaldiGossip) StartClient() {
 				v.store.PrintItems()
 			}
 		}
-		time.Sleep(time.Duration(rand.Intn(4*samplingInterval+1)) * time.Second)
 	}
 }
 

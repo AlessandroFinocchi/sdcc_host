@@ -33,7 +33,7 @@ type VivaldiProtocol struct {
 	logger     uh.MyLogger
 }
 
-func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *VivaldiProtocol {
+func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip) *VivaldiProtocol {
 	cc, err1 := u.ReadConfigFloat64("config.ini", "vivaldi", "cc")
 	ce, err2 := u.ReadConfigFloat64("config.ini", "vivaldi", "ce")
 	coordinateDimensions, err3 := u.ReadConfigInt("config.ini", "vivaldi", "coordinate_dimensions")
@@ -66,7 +66,7 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *Vi
 		pView:      nil,
 		cc:         cc,
 		ce:         ce,
-		filter:     filter,
+		filter:     vivaldi.NewFilter(),
 		stabilizer: NewStabilizer(vivaldiGossip),
 		mu:         &sync.RWMutex{},
 		logger:     uh.NewMyLogger(logging),
@@ -75,8 +75,8 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *Vi
 }
 
 func (v *VivaldiProtocol) PullCoordinates(ctx context.Context, _ *pb.Empty) (*pb.VivaldiCoordinate, error) {
-	//v.mu.RLock()
-	//defer v.mu.RUnlock()
+	v.mu.RLock()
+	defer v.mu.RUnlock()
 
 	if err := u.ContextError(ctx); err != nil {
 		return nil, err
@@ -123,9 +123,8 @@ func (v *VivaldiProtocol) StartClient() {
 	}
 
 	// Distribute the coordinates
-	//ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
-	//for range ticker.C {
-	for {
+	ticker := time.NewTicker(time.Duration(samplingInterval) * time.Second)
+	for range ticker.C {
 		desc, ok := v.pView.GetRandomDescriptor()
 		if ok {
 			startTime := time.Now().In(m.Location)
@@ -147,7 +146,6 @@ func (v *VivaldiProtocol) StartClient() {
 				_ = os.Stdout.Sync()
 			}
 		}
-		time.Sleep(time.Duration(rand.Intn(4*samplingInterval+1)) * time.Second)
 	}
 }
 

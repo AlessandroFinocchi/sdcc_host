@@ -79,7 +79,6 @@ func (mpf *MPFilter) FilterCoordinates(nodeId string, rtt time.Duration) time.Du
 	copy(samples, window)
 	slices.Sort(samples)
 	i := int(float64(len(samples)) * (mpf.p / 100))
-	//fmt.Println("Node: ", nodeId, ", its window is ", window)
 	return samples[i]
 }
 

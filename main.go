@@ -5,7 +5,6 @@ import (
 	"github.com/AlessandroFinocchi/sdcc_common/pb"
 	m "sdcc_host/model"
 	s "sdcc_host/services"
-	"sdcc_host/vivaldi"
 )
 
 func main() {
@@ -13,10 +12,9 @@ func main() {
 
 	// Initialize Protocols
 	rc, uniqueId := s.NewRegistryConnectorClient()
-	filter := vivaldi.NewFilter()
-	membershipProtocol := s.NewMembershipProtocol(filter)
-	vivaldiGossip := s.NewVivaldiGossip(filter)
-	vivaldiProtocol := s.NewVivaldiProtocol(vivaldiGossip, filter)
+	membershipProtocol := s.NewMembershipProtocol()
+	vivaldiGossip := s.NewVivaldiGossip()
+	vivaldiProtocol := s.NewVivaldiProtocol(vivaldiGossip)
 
 	// Start Protocols and get address infos
 	membershipServerIp, membershipServerPort := membershipProtocol.StartServer()
@@ -46,7 +44,7 @@ func main() {
 	// Start client protocols
 	go membershipProtocol.StartClient()
 	go vivaldiProtocol.StartClient()
-	//go vivaldiGossip.StartClient()
+	go vivaldiGossip.StartClient()
 
 	select {}
 }

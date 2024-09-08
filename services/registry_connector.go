@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"log"
-	"math/rand"
 	"os"
 	m "sdcc_host/model"
 	uh "sdcc_host/utils"
@@ -38,6 +37,7 @@ func NewRegistryConnectorClient() (*RegistryConnectorClient, string) {
 
 func (rc *RegistryConnectorClient) startHeartbeat(h pb.HeartbeatClient, ctx context.Context, currentNode *pb.Node) {
 	for {
+		time.Sleep(4 * time.Second)
 		ctxT, cancel := context.WithTimeout(ctx, 10*time.Second)
 		_, err := h.Beat(ctxT, &pb.Node{
 			Id:             currentNode.GetId(),
@@ -51,7 +51,6 @@ func (rc *RegistryConnectorClient) startHeartbeat(h pb.HeartbeatClient, ctx cont
 			log.Fatalf("Could not send heartbeat: %v", err)
 		}
 		cancel()
-		time.Sleep(time.Duration(rand.Intn(10)+1) * time.Second)
 	}
 }
 
@@ -67,7 +66,7 @@ func (rc *RegistryConnectorClient) Connect(ctx context.Context, currentServerNod
 	}
 
 	c := pb.NewConnectorClient(conn)
-	//h := pb.NewHeartbeatClient(conn)
+	h := pb.NewHeartbeatClient(conn)
 
 	nodeList, err := c.Connect(ctx, currentServerNode)
 	if err != nil {
@@ -80,7 +79,7 @@ func (rc *RegistryConnectorClient) Connect(ctx context.Context, currentServerNod
 	}
 	rc.logger.Log("")
 
-	//go rc.startHeartbeat(h, ctx, currentServerNode)
+	go rc.startHeartbeat(h, ctx, currentServerNode)
 
 	return nodeList.Nodes
 }
