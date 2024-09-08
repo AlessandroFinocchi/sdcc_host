@@ -40,11 +40,10 @@ func NewVivaldiGossip(filter vivaldi.Filter) *VivaldiGossip {
 	maxFeedbackCounter, err1 := u.ReadConfigInt("config.ini", "vivaldi_gossip", "feedback_counter")
 	sendingCoordsNum, err2 := u.ReadConfigInt("config.ini", "vivaldi_gossip", "feedback_coords_num")
 	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingGossipEnv))
+	store := m.NewStore()
 	if err1 != nil || err2 != nil || errL != nil {
 		log.Fatalf("Failed to read config for gossiping vivaldi")
 	}
-
-	store := m.NewStore()
 
 	return &VivaldiGossip{
 		store:              store,
