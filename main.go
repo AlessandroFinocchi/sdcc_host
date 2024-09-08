@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	file, err := os.Open("/data/results.txt") // Write the file to /data (mapped to a volume)
+	file, err := os.Create("/data/results.txt") // Write the file to /data (mapped to a volume)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
 		for {
