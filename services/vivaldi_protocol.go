@@ -146,12 +146,15 @@ func (v *VivaldiProtocol) StartClient() {
 				file, errO := os.Open("/data/results.txt") // Write the file to /data (mapped to a volume)
 				if errO != nil {
 					v.logger.Log(fmt.Sprintf("Error opening file: %v", errO))
+				} else {
+					_, errW := file.WriteString(fmt.Sprintf("%d, %f\n", v.round, v.error))
+					if errW != nil {
+						v.logger.Log(fmt.Sprintf("Error writing to file: %v", errW))
+					} else {
+						v.logger.Log(fmt.Sprintf("Correctly wrote to file"))
+						v.round++
+					}
 				}
-				_, errW := file.WriteString(fmt.Sprintf("%d, %f\n", v.round, v.error))
-				if errW != nil {
-					v.logger.Log(fmt.Sprintf("Error writing to file: %v", errW))
-				}
-				v.round++
 				_ = file.Close()
 
 				// log
