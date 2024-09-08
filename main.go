@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 )
 
 func main() {
@@ -11,9 +10,6 @@ func main() {
 	file, err := os.Create("/data/results.txt") // Write the file to /data (mapped to a volume)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
-		for {
-			time.Sleep(20 * time.Second)
-		}
 	}
 	defer func(file *os.File) {
 		_ = file.Close()
@@ -22,15 +18,10 @@ func main() {
 	_, err = file.WriteString("Hello, Docker!\n")
 	if err != nil {
 		fmt.Println("Error writing to file:", err)
-		for {
-			time.Sleep(20 * time.Second)
-		}
 	}
 
 	fmt.Println("Successfully wrote to output.txt")
-	for {
-		time.Sleep(20 * time.Second)
-	}
+	return
 	//ctx := context.Background()
 	//
 	//// Initialize Protocols
