@@ -3,25 +3,43 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 func main() {
+	file1, err := os.Create("results2.txt") // Write the file to /data (mapped to a volume)
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		for {
+			time.Sleep(20 * time.Second)
+		}
+	}
+	_ = file1.Close()
+	fmt.Println("Successfully created to output.txt")
+
 	file, err := os.Open("results.txt") // Write the file to /data (mapped to a volume)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
-		select {}
+		for {
+			time.Sleep(20 * time.Second)
+		}
 	}
 	defer func(file *os.File) {
 		_ = file.Close()
 	}(file)
+
 	_, err = file.WriteString("Hello, Docker!\n")
 	if err != nil {
 		fmt.Println("Error writing to file:", err)
-		select {}
+		for {
+			time.Sleep(20 * time.Second)
+		}
 	}
 
 	fmt.Println("Successfully wrote to output.txt")
-	select {}
+	for {
+		time.Sleep(20 * time.Second)
+	}
 	//ctx := context.Background()
 	//
 	//// Initialize Protocols
