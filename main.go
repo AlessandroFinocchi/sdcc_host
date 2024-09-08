@@ -2,16 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/AlessandroFinocchi/sdcc_common/pb"
-	"os"
 	m "sdcc_host/model"
 	s "sdcc_host/services"
 	"sdcc_host/vivaldi"
 )
 
 func main() {
-	fmt.Println("Current process PID: ", os.Getgid())
 	ctx := context.Background()
 
 	// Initialize Protocols
@@ -49,7 +46,7 @@ func main() {
 	// Start client protocols
 	go membershipProtocol.StartClient()
 	go vivaldiProtocol.StartClient()
-	go vivaldiGossip.StartClient()
+	//go vivaldiGossip.StartClient()
 
 	select {}
 }

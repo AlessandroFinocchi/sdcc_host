@@ -67,7 +67,7 @@ func (rc *RegistryConnectorClient) Connect(ctx context.Context, currentServerNod
 	}
 
 	c := pb.NewConnectorClient(conn)
-	h := pb.NewHeartbeatClient(conn)
+	//h := pb.NewHeartbeatClient(conn)
 
 	nodeList, err := c.Connect(ctx, currentServerNode)
 	if err != nil {
@@ -80,7 +80,7 @@ func (rc *RegistryConnectorClient) Connect(ctx context.Context, currentServerNod
 	}
 	rc.logger.Log("")
 
-	go rc.startHeartbeat(h, ctx, currentServerNode)
+	//go rc.startHeartbeat(h, ctx, currentServerNode)
 
 	return nodeList.Nodes
 }
