@@ -143,7 +143,7 @@ func (v *VivaldiProtocol) StartClient() {
 				v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
 
 				// Log the results
-				file, errO := os.Open("/data/results.txt") // Write the file to /data (mapped to a volume)
+				file, errO := os.OpenFile("/data/results.txt", os.O_APPEND, 0664) // Write the file to /data (mapped to a volume)
 				if errO != nil {
 					v.logger.Log(fmt.Sprintf("Error opening file: %v", errO))
 				} else {
