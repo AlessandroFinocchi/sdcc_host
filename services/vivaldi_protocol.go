@@ -146,7 +146,7 @@ func (v *VivaldiProtocol) StartClient() {
 				v.stabilizer.Update(&v.sysCoord, v.pView.GetCurrentServerNode())
 
 				// Log the results
-				v.writeFileResult(v.round, v.error)
+				v.writeFileResult()
 
 				// log
 				v.logger.Log(fmt.Sprintf("RTT filtered: %f", rttFiltered))
@@ -194,11 +194,11 @@ func (v *VivaldiProtocol) UpdateCoordinates(receivedProtoCoordinates *pb.Vivaldi
 	return rttFiltered, norm2Dist
 }
 
-func (v *VivaldiProtocol) writeFileResult(round int64, error float64) {
+func (v *VivaldiProtocol) writeFileResult() {
 	if !v.resultFileEnabled {
 		return
 	}
-	file, errO := os.OpenFile("/data/results.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0664) // Write the file to /data (mapped to a volume)
+	file, errO := os.OpenFile("/data/results.csv", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0664) // Write the file to /data (mapped to a volume)
 	if errO != nil {
 		v.logger.Log(fmt.Sprintf("Error opening file: %v", errO))
 	} else {

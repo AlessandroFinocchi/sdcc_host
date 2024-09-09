@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Create/Truncate result file
-	file, err := os.Create("/data/results.txt") // Write the file to /data (mapped to a volume)
+	file, err := os.Create("/data/results.csv") // Write the file to /data (mapped to a volume)
 	if err != nil {
 		log.Fatalf("Error opening file: %v", err)
 	}
