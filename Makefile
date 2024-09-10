@@ -1,4 +1,4 @@
-.PHONY: host
+.PHONY: host cert
 
 host:
 	go run ./main.go -membership_port 50152 -vivaldi_port 50153 -gossip_port 50154
@@ -11,3 +11,6 @@ host2:
 
 host3:
 	go run ./main.go -membership_port 50161 -vivaldi_port 50162 -gossip_port 50163
+
+cert:
+	cd cert; chmod +x gen.sh; ./gen.sh; cd ..

@@ -41,7 +41,7 @@ func NewVivaldiProtocol(vivaldiGossip *VivaldiGossip, filter vivaldi.Filter) *Vi
 	coordinateDimensions, err3 := u.ReadConfigInt("config.ini", "vivaldi", "coordinate_dimensions")
 	cs := u.ReadConfigString("config.ini", "vivaldi", "coordinate_space")
 	logging, errL := strconv.ParseBool(os.Getenv(m.LoggingVivaldiEnv))
-	resultFileEnabled, errR := strconv.ParseBool(os.Getenv(m.LogginResultEnv))
+	resultFileEnabled, errR := strconv.ParseBool(os.Getenv(m.LoggingResultEnv))
 	if err1 != nil || err2 != nil || err3 != nil || errL != nil || errR != nil {
 		log.Fatalf("Failed to read config in vivaldi protcol: %v", err1)
 	}
@@ -206,7 +206,6 @@ func (v *VivaldiProtocol) writeFileResult() {
 		if errW != nil {
 			v.logger.Log(fmt.Sprintf("Error writing to file: %v", errW))
 		} else {
-			v.logger.Log(fmt.Sprintf("Correctly wrote to file"))
 			v.round++
 		}
 	}

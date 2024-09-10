@@ -6,6 +6,8 @@ import (
 )
 
 var (
+	// SpaceType = 1 for EuclideanSpace
+	// SpaceType = 2 for HeightVectorEuclideanSpace
 	SpaceType            = 1
 	InstanceSpace  Space = EuclideanSpace{}
 	Location, _          = time.LoadLocation("Europe/Rome")
@@ -14,7 +16,7 @@ var (
 	GossipPort           = flag.Uint("gossip_port", 50154, "Gossip server port")
 
 	LoggingEnv           = "LOGGING"
-	LogginResultEnv      = "RESULT_LOGGING"
+	LoggingResultEnv     = "RESULT_LOGGING"
 	LoggingMembershipEnv = "MEMBERSHIP_LOGGING"
 	LoggingVivaldiEnv    = "VIVALDI_LOGGING"
 	LoggingGossipEnv     = "GOSSIPING_LOGGING"

@@ -11,17 +11,7 @@ import (
 )
 
 func main() {
-	// Create/Truncate result file
-	file, err := os.Create("/data/results.csv") // Write the file to /data (mapped to a volume)
-	if err != nil {
-		log.Fatalf("Error opening file: %v", err)
-	}
-	_, err = file.WriteString("Time, Error\n")
-	if err != nil {
-		log.Fatalf("Error writing to file: %v", err)
-	}
-	_ = file.Close()
-
+	initFile()
 	ctx := context.Background()
 
 	// Initialize Protocols
@@ -62,4 +52,17 @@ func main() {
 	go vivaldiGossip.StartClient()
 
 	select {}
+}
+
+func initFile() {
+	// Create/Truncate result file
+	file, err := os.Create("/data/results.csv") // Write the file to /data (mapped to a volume)
+	if err != nil {
+		log.Fatalf("Error opening file: %v", err)
+	}
+	_, err = file.WriteString("Time, Error\n")
+	if err != nil {
+		log.Fatalf("Error writing to file: %v", err)
+	}
+	_ = file.Close()
 }

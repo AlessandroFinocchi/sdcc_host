@@ -13,9 +13,6 @@ type Coordinate interface {
 	GetUnitVector() Coordinate
 }
 
-// spaceType = 1 for EuclideanSpace
-// spaceType = 2 for HeightVectorEuclideanSpace
-
 type EuclideanCoordinate struct {
 	EuclideanSpace
 	Point []float64
